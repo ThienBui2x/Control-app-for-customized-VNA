@@ -9,6 +9,7 @@ dist/
 
 # Build files
 build/
+.vscode/
 
 # Compiled Java class files
 *.class
