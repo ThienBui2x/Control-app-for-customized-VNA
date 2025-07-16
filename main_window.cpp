@@ -1,0 +1,523 @@
+#include "main_window.h"
+#include "ui_main_window.h"
+#include <QSerialPort>
+#include <qcustomplot.h>
+#include <QDebug>
+#include <QtMath>
+#include <QDateTime>
+#include <QDir>
+
+main_window::main_window(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::main_window)
+{
+    ui->setupUi(this);
+
+    initializeMainWindow();
+
+    hcom1 = new QSerialPort();
+}
+
+main_window::~main_window()
+{
+    delete hcom1;
+    delete ui;
+}
+
+void main_window::on_popen_button_clicked()
+{
+    UartConfig config = getUartConfigFromUI();
+
+    hcom1->setPortName(config.portName);
+    hcom1->setBaudRate(config.baudRate);
+    hcom1->setDataBits(config.dataBits);
+    hcom1->setParity(config.parity);
+    hcom1->setStopBits(config.stopBits);
+    hcom1->setFlowControl(config.flowControl);
+
+    qDebug() << "UART config applied with port:" << config.portName;
+
+    if (hcom1->open(QIODevice::ReadWrite))
+    {
+        port_options(DISABLE);
+        connect(hcom1, SIGNAL(readyRead()), this, SLOT(uartRead()));
+        // qDebug() << "Serial port opened successfully.";
+        statusBar()->showMessage("Serial port " + config.portName +" opened successfully.", 1000);
+    }
+    else
+    {
+        // qDebug() << "Failed to open serial port:" << hcom1->errorString();
+        statusBar()->showMessage("Failed to open serial port: " + hcom1->errorString(), 1000);
+    }
+}
+
+void main_window::on_pclose_button_clicked()
+{
+    if (hcom1->isOpen())
+    {
+        // Clear all displayed data
+        ui->plot->graph(0)->data()->clear();
+        ui->plot->replot();
+
+        // Double check in case previous logFie still opens
+        // -> close it before closing the Port
+        if (isLog)  // In case no logFile opened
+        {
+            logFile.close();
+            outLogFile.setDevice(nullptr);
+        }
+
+        // Reset all state, index variables
+        port_options(ENABLE);
+        timeIndex = 0;
+        isReady = false;
+        isPause = false;
+        isLog = false;
+
+        hcom1->close();
+
+        // qDebug() << "Serial port closed.";
+        statusBar()->showMessage("Serial port " + hcom1->portName() + " closed.", 1000);
+    }
+    else
+    {
+        // qDebug() << "Serial port was already closed.";
+        statusBar()->showMessage("Serial port " + hcom1->portName() + " was already closed.", 1000);
+    }   
+}
+
+void main_window::on_pause_button_clicked()
+{
+    isPause = !isPause; // Toggle pause state
+}
+
+void main_window::on_run_button_clicked()
+{
+    freqSettings.startFreqHz = convertToHz(ui->fstart_data->text().toDouble(), ui->fstart_unit->currentText());
+    freqSettings.stopFreqHz  = convertToHz(ui->fend_data->text().toDouble(), ui->fend_unit->currentText());
+    freqSettings.stepFreqHz  = convertToHz(ui->fstep_data->text().toDouble(), ui->fstep_unit->currentText());
+    freqSettings.rfPout      = ui->rf_pout_data->text().toDouble(); // assuming dBm, no conversion
+
+    freqSettings.sampleCount = (freqSettings.stopFreqHz - freqSettings.startFreqHz) / freqSettings.stepFreqHz + 1;
+    freqSettings.currFreq = freqSettings.startFreqHz;
+
+    freqSettings.max.freqVal = 4400000000;
+    freqSettings.max.adcVal = 00000.0;
+    freqSettings.min.freqVal = 0000000000;
+    freqSettings.min.adcVal = 10000.0;
+
+    freq_options(DISABLE);
+    // scalingSelection(ENABLE);
+    isReady = true;
+    isPause = false;
+    initializePlot();
+    if (hcom1->isOpen())
+    {
+        ui->plot->graph(0)->data()->clear();
+        ui->plot->replot();
+
+        // Double check in case previous logFie still opens
+        // -> close it before creating new one
+        if (isLog)
+        {
+            logFile.close();    //Close the old file
+            outLogFile.setDevice(nullptr);
+            // qDebug() << "Previous log file closed.!";
+        }
+        isLog = true;
+
+        if (ui->mode_data->currentText() == "RF Scanning") initializeRFScanMode();
+        else if (ui->mode_data->currentText() == "S11 Plot") initializeS11PlotMode();
+        else qWarning() << "No supported mode is selected" << ui->mode_data;
+
+        // Only send commands (header) -> MCU if checked
+        // otherwise the freqSettings are configured independently by a 3rd-party
+        if (ui->isFreqEnabled->isChecked()) uartWrite();
+
+        statusBar()->showMessage("Waiting measurement data!", 1000);
+    }
+}
+
+void main_window::on_stop_button_clicked()
+{
+    // Clear all displayed data
+    ui->plot->graph(0)->data()->clear();
+    ui->plot->replot();
+
+    // Close and clear logFile
+    if (isLog)  // In case no logFile opened
+    {
+        logFile.close();
+        outLogFile.setDevice(nullptr);
+    }
+
+    // Reset all state, index variables
+    timeIndex = 0;
+    isReady = false;
+    isPause = false;
+    isLog = false;
+
+    freq_options(ENABLE);
+    // scalingSelection(DISABLE);
+    statusBar()->showMessage("Stop measurement!", 1000);
+}
+\
+void main_window::on_actionExit_triggered()
+{
+    if(hcom1->isOpen()) hcom1->close();
+
+    QApplication::quit();
+}
+
+void main_window::on_yscale_data_currentTextChanged(const QString &arg1)
+{
+    if(!isReady)    // Only modify when stopped
+    {
+        bool ok = false;
+        scaledFactor = arg1.toUInt(&ok);
+
+        qDebug() << "New scaling factor:" << scaledFactor;
+
+        // Clear all current data
+        // ui->plot->graph(0)->data()->clear();
+    }
+}
+
+void main_window::initializeMainWindow()
+{
+    menuBar()->setStyleSheet
+        (R"(
+        QMenuBar { color: white; background-color: #2a2a2a; }
+        QMenu { color: white; background-color: #2a2a2a; }
+    )");
+    // menuBar()->setStyleSheet("QMenuBar { color: white; background-color: #2a2a2a; }");
+    // menuBar()->setStyleSheet("QMenu { color: white; background-color: #2a2a2a; }");
+    statusBar()->setStyleSheet("QStatusBar { color: white; background-color: #2a2a2a; }");
+
+    // scalingSelection(DISABLE);
+}
+
+void main_window::initializePlot()
+{
+    ui->plot->addGraph();
+    ui->plot->graph(0)->setPen(QPen(Qt::blue));
+    ui->plot->graph(0)->setScatterStyle(QCPScatterStyle::ssNone);
+    ui->plot->graph(0)->setLineStyle(QCPGraph::lsLine);
+}
+
+void main_window::initializeRFScanMode()
+{
+    // Create new file with current timestamp
+    QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_rfScanning.csv";
+    logFile.setFileName(filename);
+    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open log file:" << filename;
+    }
+    outLogFile.setDevice(&logFile);
+    ui->plot->graph(0)->setName("RF Scanning");
+    ui->plot->xAxis->setLabel("Frequency (Hz)");
+    ui->plot->yAxis->setLabel("ADC Value");
+    ui->plot->xAxis->setRange(freqSettings.startFreqHz, freqSettings.stopFreqHz+freqSettings.startFreqHz/2);
+    ui->plot->yAxis->setRange(50.0, 80.0);     // in Unit: dB
+
+    // ui->plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
+    // QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
+    // ui->plot->yAxis->setTicker(logTicker);
+}
+
+void main_window::initializeS11PlotMode()
+{
+    // Create new file with current timestamp
+    QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_S11Plot.csv";
+    logFile.setFileName(filename);
+    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open log file:" << filename;
+    }
+    outLogFile.setDevice(&logFile);
+    ui->plot->graph(0)->setName("S11 Plot");
+    ui->plot->xAxis->setLabel("Time (sec)");
+    ui->plot->yAxis->setLabel("ADC Value");
+    ui->plot->xAxis->setRange(0.0, 10.0);
+    ui->plot->yAxis->setRange(50.0, 80.0);     // in Unit: dB
+}
+
+void main_window::updateXAxisRange(double windowSize)
+{
+    double xMin = std::max(0.0, timeVal - windowSize);
+    double xMax = timeVal;
+    ui->plot->xAxis->setRange(xMin, xMax);
+
+    if (timeIndex == 10000)
+    {
+        timeIndex = 0;
+        ui->plot->graph(0)->data()->clear();
+    }
+}
+
+void main_window::updateYAxisRange(double data, double offset)
+{
+    double yMin = std::max(0.0, data - offset);
+    double yMax = data + offset;
+    ui->plot->yAxis->setRange(yMin, yMax);
+}
+
+void main_window::port_options(bool option)
+{
+    ui->port_data->setEnabled(option);
+    ui->brate_data->setEnabled(option);
+    ui->parity_data->setEnabled(option);
+    ui->dbits_data->setEnabled(option);
+    ui->sbits_data->setEnabled(option);
+    ui->fctrl_data->setEnabled(option);
+}
+
+void main_window::freq_options(bool option)
+{
+    ui->fstart_data->setEnabled(option);
+    ui->fend_data->setEnabled(option);
+    ui->fstep_data->setEnabled(option);
+    ui->rf_pout_data->setEnabled(option);
+    ui->mode_data->setEnabled(option);
+}
+
+void main_window::scalingSelection(bool option)
+{
+    ui->yscale_data->setEnabled(option);
+}
+
+double main_window::scalingYAxisVal(double data)
+{
+    double scaledVal = scaledFactor * data;
+    // updateYAxisRange(scaledVal, 1500);
+    return scaledVal;
+}
+
+UartConfig main_window::getUartConfigFromUI()
+{
+    UartConfig config;
+
+    config.portName = ui->port_data->text();  // Assuming QLineEdit for port name
+
+    int baud = ui->brate_data->currentText().toInt();
+    config.baudRate = static_cast<QSerialPort::BaudRate>(baud);
+
+    int dbits = ui->dbits_data->currentText().toInt();
+    config.dataBits = static_cast<QSerialPort::DataBits>(dbits);
+
+    QString parityText = ui->parity_data->currentText().toLower();
+    if (parityText == "none")       config.parity = QSerialPort::NoParity;
+    else if (parityText == "even")  config.parity = QSerialPort::EvenParity;
+    else if (parityText == "odd")   config.parity = QSerialPort::OddParity;
+    else if (parityText == "mark")  config.parity = QSerialPort::MarkParity;
+    else if (parityText == "space") config.parity = QSerialPort::SpaceParity;
+
+    QString sbits = ui->sbits_data->currentText();
+    if (sbits == "1")       config.stopBits = QSerialPort::OneStop;
+    else if (sbits == "1.5") config.stopBits = QSerialPort::OneAndHalfStop;
+    else if (sbits == "2")   config.stopBits = QSerialPort::TwoStop;
+
+    QString flowText = ui->fctrl_data->currentText().toLower();
+    if (flowText == "none")       config.flowControl = QSerialPort::NoFlowControl;
+    else if (flowText == "rts/cts") config.flowControl = QSerialPort::HardwareControl;
+    else if (flowText == "xon/xoff") config.flowControl = QSerialPort::SoftwareControl;
+
+    return config;
+}
+
+void main_window::uartWrite()
+{
+    // Split each frequency
+    uint8_t firstBitStart = freqSettings.startFreqHz / 1'000'000'000;
+    uint32_t otherBitsStart = freqSettings.startFreqHz % 1'000'000'000;
+    uint8_t firstBitStop = freqSettings.stopFreqHz / 1'000'000'000;
+    uint32_t otherBitsStop = freqSettings.stopFreqHz % 1'000'000'000;
+
+    qDebug() << QString("[FirstBitStart] = 0x%1").arg(firstBitStart, 2, 16, QChar('0')).toUpper();
+    qDebug() << QString("[OtherBitsStart]= 0x%1").arg(otherBitsStart, 8, 16, QChar('0')).toUpper();
+    qDebug() << QString("[FirstBitStop]  = 0x%1").arg(firstBitStop, 2, 16, QChar('0')).toUpper();
+    qDebug() << QString("[OtherBitsStop] = 0x%1").arg(otherBitsStop, 8, 16, QChar('0')).toUpper();
+    qDebug() << QString("[OtherBitsStop] = 0x%1").arg(freqSettings.stepFreqHz, 8, 16, QChar('0')).toUpper();
+
+    // Format header string to match STM32
+    QString header = QString("%1%2%3%4%5\n")
+                         .arg(firstBitStart, 2, 16, QChar('0'))
+                         .arg(otherBitsStart, 8, 16, QChar('0'))
+                         .arg(firstBitStop, 2, 16, QChar('0'))
+                         .arg(otherBitsStop, 8, 16, QChar('0'))
+                         .arg(freqSettings.stepFreqHz, 8, 16, QChar('0'))
+                         .toUpper();
+
+    hcom1->write("Start\n");
+    qDebug() << "Start command sent!";
+    statusBar()->showMessage("Start command sent!", 1000);
+
+    QTimer::singleShot(100, this, [=]() {
+        hcom1->write(header.toUtf8());
+        statusBar()->showMessage("Header sent!", 1000);
+    });
+}
+
+void main_window::uartRead()
+{
+    if(hcom1->isOpen())
+    {
+        rxData += hcom1->readAll();
+
+        while (rxData.contains('\n'))
+        {
+            int newLineIndex = rxData.indexOf('\n');
+            QByteArray packet = rxData.left(newLineIndex).trimmed();
+            // qDebug() << packet;
+
+            if(isReady and !isPause)
+            {
+                QString mode = ui->mode_data->currentText();
+                if (mode == "RF Scanning") rfScan(&packet);
+                else if (mode == "S11 Plot") s11Plot(&packet);
+                else qDebug() << "Unknown mode:" << mode;
+            }
+
+            // Clear buffer up to and including '\n'
+            // Clear buffer early to prevent stuck loops
+            rxData.remove(0, newLineIndex+1);
+        }
+    }
+}
+
+void main_window::rfScan(QByteArray *packet)
+{
+    if (packet->size() == 4 and freqSettings.sampleCount > 0)
+    {
+        bool ok;
+        double adcVal = static_cast<double>(packet->toUInt(&ok, 16));
+
+        // Convert to dB
+        adcVal = 20*log10(adcVal);
+
+        //Store max and min data
+        if (adcVal < freqSettings.min.adcVal)
+        {
+            freqSettings.min.adcVal = adcVal;
+            freqSettings.min.freqVal = freqSettings.currFreq;
+        }
+        else if (adcVal > freqSettings.max.adcVal)
+        {
+            freqSettings.max.adcVal = adcVal;
+            freqSettings.max.freqVal = freqSettings.currFreq;
+        }
+
+        qDebug() << freqSettings.sampleCount << "adcVal (dB) =" << adcVal << "at freq =" << freqSettings.currFreq;
+
+        // Add data point
+        ui->plot->graph(0)->addData(freqSettings.currFreq, scalingYAxisVal(adcVal));
+        ui->plot->replot();
+
+        // Save data logging
+        if(isLog)
+        {
+            outLogFile << freqSettings.currFreq << "," << scalingYAxisVal(adcVal) << "\n";
+        }
+
+        freqSettings.currFreq += freqSettings.stepFreqHz;
+        freqSettings.sampleCount--;
+
+    }
+    else
+    {
+        qWarning() << "Invalid packet length (" << packet->size() << "):" << packet;
+
+        // Recovery: Drop packet or look for next valid structure
+        if (packet->size() > 50) {
+            rxData.clear(); // avoid growing garbage
+            qWarning() << "Buffer cleared due to overflow.";
+        }
+    }
+}
+
+void main_window::s11Plot(QByteArray *packet)
+{
+    if (packet->size() == 4)
+    {
+        bool ok;
+        double adcVal = static_cast<double>(packet->toUInt(&ok, 16));
+
+        // Convert to dB
+        adcVal = 20*log10(adcVal);
+
+        //Store max and min data
+        if (adcVal < freqSettings.min.adcVal)
+        {
+            freqSettings.min.adcVal = adcVal;
+            freqSettings.min.freqVal = freqSettings.currFreq;
+        }
+        else if (adcVal > freqSettings.max.adcVal)
+        {
+            freqSettings.max.adcVal = adcVal;
+            freqSettings.max.freqVal = freqSettings.currFreq;
+        }
+
+        timeVal = timeIndex * 0.01; // Assume that data is sent every 100ms
+        qDebug() << freqSettings.sampleCount << "adcVal (dB) =" << adcVal << "at time =" << timeVal;
+
+        // Add data point
+        ui->plot->graph(0)->addData(timeVal, scalingYAxisVal(adcVal));
+        updateXAxisRange(1);
+        ui->plot->replot();
+
+        // Save data logging
+        if(isLog)
+        {
+            outLogFile << timeVal << "," << scalingYAxisVal(adcVal) << "\n";
+        }
+
+        timeIndex++;
+    }
+    else
+    {
+        qWarning() << "Invalid packet length (" << packet->size() << "):" << packet;
+
+        // Recovery: Drop packet or look for next valid structure
+        if (packet->size() > 50) {
+            rxData.clear(); // avoid growing garbage
+            qWarning() << "Buffer cleared due to overflow.";
+        }
+    }
+}
+
+uint64_t main_window::convertToHz(double value, const QString &unit)
+{
+    QString u = unit.trimmed().toLower();
+    if (u == "ghz") return static_cast<uint64_t>(value * 1e9);
+    if (u == "mhz") return static_cast<uint64_t>(value * 1e6);
+    if (u == "khz") return static_cast<uint64_t>(value * 1e3);
+    return static_cast<uint64_t>(value); // assume already in Hz
+}
+
+
+
+void main_window::on_outDir_data_textChanged(const QString &arg1)
+{
+    QDir dir(arg1);
+    if (!dir.exists())
+    {
+        qDebug() << "Warning: Output directory does not exist!";
+        // // Create it!!
+        // dir.mkdir(".");
+    }
+    else logPath = arg1 + "/";
+}
+
+
+void main_window::on_max_button_clicked()
+{
+    qDebug() << "Max Adc at freq" << freqSettings.max.freqVal;
+    statusBar()->showMessage("Max Adc at freq" + QString::number(freqSettings.max.freqVal), 3000);
+}
+
+
+void main_window::on_min_button_clicked()
+{
+    qDebug() << "Min Adc at freq" << freqSettings.min.freqVal;
+    statusBar()->showMessage("Min Adc at freq" + QString::number(freqSettings.min.freqVal), 3000);
+}
+
