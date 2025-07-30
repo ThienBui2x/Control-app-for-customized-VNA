@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1186</width>
+    <width>1272</width>
     <height>595</height>
    </rect>
   </property>
@@ -35,10 +35,10 @@
    <widget class="QCustomPlot" name="plot" native="true">
     <property name="geometry">
      <rect>
-      <x>440</x>
-      <y>30</y>
-      <width>741</width>
-      <height>381</height>
+      <x>430</x>
+      <y>20</y>
+      <width>821</width>
+      <height>341</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -1843,9 +1843,9 @@ color: rgb(255, 170, 0);
    <widget class="Line" name="line_5">
     <property name="geometry">
      <rect>
-      <x>400</x>
-      <y>450</y>
-      <width>781</width>
+      <x>410</x>
+      <y>370</y>
+      <width>861</width>
       <height>16</height>
      </rect>
     </property>
@@ -2010,37 +2010,12 @@ background-color: rgb(100, 100, 100);</string>
      <string>P</string>
     </property>
    </widget>
-   <widget class="QLabel" name="outDir_info">
-    <property name="geometry">
-     <rect>
-      <x>400</x>
-      <y>470</y>
-      <width>101</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Verdana</family>
-      <pointsize>9</pointsize>
-      <italic>false</italic>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">font: 700 9pt &quot;Verdana&quot;;
-color: rgb(85, 255, 255);</string>
-    </property>
-    <property name="text">
-     <string>Output Dir</string>
-    </property>
-   </widget>
    <widget class="QLineEdit" name="outDir_data">
     <property name="geometry">
      <rect>
-      <x>500</x>
-      <y>467</y>
-      <width>681</width>
+      <x>520</x>
+      <y>390</y>
+      <width>241</width>
       <height>31</height>
      </rect>
     </property>
@@ -2126,13 +2101,30 @@ background-color: rgb(100, 100, 100);</string>
      <string>RUN</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="outDir_info">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>390</y>
+      <width>101</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 700 9pt &quot;Verdana&quot;;
+color: rgb(85, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Output Dir</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1186</width>
+     <width>1272</width>
      <height>21</height>
     </rect>
    </property>

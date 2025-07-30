@@ -5,6 +5,7 @@
 #include <QSerialPort>
 #include <QFile>
 #include <QTextStream>
+#include <complex.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -41,6 +42,13 @@ struct UartConfig
     QSerialPort::Parity parity;
     QSerialPort::StopBits stopBits;
     QSerialPort::FlowControl flowControl;
+};
+
+struct SParameters
+{
+    double frequency;
+    std::complex<double> s11, s21, s12, s22;
+
 };
 
 class main_window : public QMainWindow

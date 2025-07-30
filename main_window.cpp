@@ -193,7 +193,8 @@ void main_window::on_run_button_clicked()
                 outLogFile.setDevice(nullptr);
                 // qDebug() << "Previous log file closed.!";
             }
-            isLog = true;
+            // Enable Log feature when its box is checked!
+            if(ui->outDir_info->isChecked()) isLog = true;
 
             if (ui->mode_data->currentText() == "RF Scanning") initializeRFScanMode();
             else if (ui->mode_data->currentText() == "S11 Plot") initializeS11PlotMode();
@@ -275,13 +276,17 @@ void main_window::initializePlot()
 
 void main_window::initializeRFScanMode()
 {
-    // Create new file with current timestamp
-    QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_rfScanning.csv";
-    logFile.setFileName(filename);
-    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open log file:" << filename;
+    if(isLog)
+    {
+        // Create new file with current timestamp
+        QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_rfScanning.csv";
+        logFile.setFileName(filename);
+        if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open log file:" << filename;
+        }
+        outLogFile.setDevice(&logFile);
     }
-    outLogFile.setDevice(&logFile);
+
     ui->plot->graph(0)->setName("RF Scanning");
     ui->plot->xAxis->setLabel("Frequency (Hz)");
     ui->plot->yAxis->setLabel("ADC Value");
@@ -295,12 +300,16 @@ void main_window::initializeRFScanMode()
 
 void main_window::initializeS11PlotMode()
 {
-    // Create new file with current timestamp
-    QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_S11Plot.csv";
-    logFile.setFileName(filename);
-    if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open log file:" << filename;
+    if(isLog)
+    {
+        // Create new file with current timestamp
+        QString filename = logPath + QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + "_S11Plot.csv";
+        logFile.setFileName(filename);
+        if (!logFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open log file:" << filename;
+        }
     }
+
     outLogFile.setDevice(&logFile);
     ui->plot->graph(0)->setName("S11 Plot");
     ui->plot->xAxis->setLabel("Time (sec)");
