@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QKeyEvent>
+#include <QFileInfo>
 
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
@@ -598,6 +599,149 @@ void main_window::on_min_button_clicked()
     statusBar()->showMessage("Min Adc at freq" + QString::number(freqSettings.min.freqVal), 3000);
 }
 
+void main_window::on_sParam_data_editingFinished()
+{
+    if(ui->sParam_info->isChecked())
+    {
+        QString type = ui->sParam_type->currentText().trimmed();
+        QString filePath = ui->sParam_data->text();
+        if(type == "DirectionalCoupler")
+        {
+            qDebug() << "File path" << filePath;
+            touchStoneParsing(filePath);
+            statusBar()->showMessage("Directional Coupler Type is selected!", 1500);
+        }
+        else if(type == "None") statusBar()->showMessage("Please select S-Param type!", 1500);
+        else; // Do Nothing
+    }
+    else; // Do Nothing
+}
 
+void main_window::touchStoneParsing(const QString& filePath)
+{
+    // Check the validity of the file
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Cannot open file:" << filePath;
+        return;
+    }
+
+    // Parsing the file (ignoring the header (starting with # or ! characters))
+    QTextStream in(&file);
+    QVector<QVector<double>> dataRows;
+    while (!in.atEnd()) {
+        // Ignore all redundancy whitespaces
+        QString line = in.readLine().trimmed();
+
+        // Skip header lines that start with '#' or '!'
+        if (line.startsWith("#") || line.startsWith("!")) {
+            continue;
+        }
+
+        // Split and convert line into numeric values
+        static const QRegularExpression regex("\\s+");
+        QStringList tokens = line.split(regex, Qt::SkipEmptyParts);
+        QVector<double> row;
+        for (int i = 0; i < tokens.size(); ++i)
+        {
+            const QString& token = tokens[i];
+            bool ok = false;
+            double value = token.toDouble(&ok);
+            if (ok) {
+                row.append(value);
+            } else {
+                qWarning() << "Failed to convert:" << token;
+            }
+        }
+        if (!row.isEmpty()) {
+            dataRows.append(row);
+        }
+    }
+
+    // Closing the file
+    file.close();
+
+    /* DEBUGGING */
+    // for (int i = 0; i < dataRows.size(); ++i) {
+    //     const QVector<double>& row = dataRows[i];
+    //     QStringList formattedValues;
+
+    //     for (double value : row) {
+    //         formattedValues << QString::number(value, 'f', 9); // Adjust precision if needed
+    //     }
+
+    //     qDebug() << "Row" << i << ":" << formattedValues.join(", ");
+    // }
+
+    // Extract filename from its path
+    QString fileName = QFileInfo(filePath).fileName();
+
+    // Identify the corresponding S-param to store data
+    std::vector<SParameters>* targetVector = nullptr;
+
+    if (fileName.contains("S12", Qt::CaseInsensitive))
+    {
+        targetVector = &dCoupler.S12;
+        statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        qDebug() << "S12";
+    }
+    else if (fileName.contains("S13", Qt::CaseInsensitive))
+    {
+        targetVector = &dCoupler.S13;
+        statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        qDebug() << "S13";
+    }
+    else if (fileName.contains("S14", Qt::CaseInsensitive))
+    {
+        targetVector = &dCoupler.S14;
+        statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        qDebug() << "S14";
+    }
+    else
+    {
+        qWarning() << "Unknown S-parameter type in file:" << fileName;
+        qDebug() << "UNKNOWN";
+        return;
+    }
+
+    // Store S-Matrix to corresponding locations
+    for (const QVector<double>& row : dataRows) {
+        if (row.size() < 9) {
+            qWarning() << "Incomplete data row, skipping:" << row;
+            continue;
+        }
+
+        SParameters newParam;
+        newParam.freq = static_cast<uint64_t>(row[0]);
+        newParam.data[0][0] = std::complex<double>(row[1], row[2]); // S11
+        newParam.data[0][1] = std::complex<double>(row[3], row[4]); // S21
+        newParam.data[1][0] = std::complex<double>(row[5], row[6]); // S12
+        newParam.data[1][1] = std::complex<double>(row[7], row[8]); // S22
+
+        if(targetVector) targetVector->push_back(newParam);
+        else qWarning() << "Invalid targetVector";
+    }
+
+    // Store the start and stop frequency
+    if(!targetVector->empty())
+    {
+        dCoupler.startFreqHz = targetVector->front().freq;
+        dCoupler.stopFreqHz = targetVector->back().freq;
+    }
+
+    /* DEBUGGING */
+    // qDebug() << "StartFreq" << dCoupler.startFreqHz;
+    // qDebug() << "StopFreq" << dCoupler.stopFreqHz;
+    // for (const SParameters& param : dCoupler.S12) {
+    //     qDebug() << "Freq:" << param.freq << "Hz";
+
+    //     qDebug() << "S11:" << param.data[0][0].real() << "+" << param.data[0][0].imag() << "j";
+    //     qDebug() << "S12:" << param.data[1][0].real() << "+" << param.data[1][0].imag() << "j";
+    //     qDebug() << "S21:" << param.data[0][1].real() << "+" << param.data[0][1].imag() << "j";
+    //     qDebug() << "S22:" << param.data[1][1].real() << "+" << param.data[1][1].imag() << "j";
+
+    //     qDebug() << "-------------";
+    // }
+}
 
 

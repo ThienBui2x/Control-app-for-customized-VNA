@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1272</width>
+    <width>1299</width>
     <height>595</height>
    </rect>
   </property>
@@ -37,7 +37,7 @@
      <rect>
       <x>430</x>
       <y>20</y>
-      <width>821</width>
+      <width>841</width>
       <height>341</height>
      </rect>
     </property>
@@ -1731,7 +1731,7 @@ color: rgb(255, 170, 0);
       <x>390</x>
       <y>-30</y>
       <width>20</width>
-      <height>451</height>
+      <height>581</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -1845,7 +1845,7 @@ color: rgb(255, 170, 0);
      <rect>
       <x>410</x>
       <y>370</y>
-      <width>861</width>
+      <width>881</width>
       <height>16</height>
      </rect>
     </property>
@@ -2118,13 +2118,92 @@ color: rgb(85, 255, 255);</string>
      <string>Output Dir</string>
     </property>
    </widget>
+   <widget class="QComboBox" name="sParam_type">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>390</y>
+      <width>151</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(100, 100, 100);
+color: rgb(255, 170, 0);
+</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>None</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>DirectionalCoupler</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QCheckBox" name="sParam_info">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>390</y>
+      <width>91</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 700 9pt &quot;Verdana&quot;;
+color: rgb(85, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>S-Params</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="sParam_data">
+    <property name="geometry">
+     <rect>
+      <x>1050</x>
+      <y>390</y>
+      <width>241</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(100, 100, 100);
+font: 600 10pt &quot;Segoe UI&quot;;
+color: rgb(170, 255, 127);</string>
+    </property>
+    <property name="text">
+     <string>C:/Users/ADM/Desktop/Test</string>
+    </property>
+   </widget>
+   <widget class="Line" name="line_9">
+    <property name="geometry">
+     <rect>
+      <x>770</x>
+      <y>390</y>
+      <width>20</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 0);</string>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Shadow::Plain</enum>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Orientation::Vertical</enum>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1272</width>
+     <width>1299</width>
      <height>21</height>
     </rect>
    </property>

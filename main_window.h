@@ -46,9 +46,18 @@ struct UartConfig
 
 struct SParameters
 {
-    double frequency;
-    std::complex<double> s11, s21, s12, s22;
+    uint64_t freq;
+    std::complex<double> data[2][2];
 
+};
+
+struct DirectionalCoupler
+{
+    uint64_t startFreqHz = 0;
+    uint64_t stopFreqHz = 0;
+    std::vector<SParameters> S12;
+    std::vector<SParameters> S13;
+    std::vector<SParameters> S14;
 };
 
 class main_window : public QMainWindow
@@ -93,6 +102,7 @@ private slots:
     void rfScan(QByteArray *packet);
     void s11Plot(QByteArray *packet);
     uint64_t convertToHz(double value, const QString &unit);
+    void touchStoneParsing(const QString& filePath);
 
     void on_outDir_data_textChanged(const QString &arg1);
 
@@ -101,6 +111,8 @@ private slots:
     void on_min_button_clicked();
 
     void on_send_button_clicked();
+
+    void on_sParam_data_editingFinished();
 
 private:
     Ui::main_window *ui;
@@ -117,5 +129,6 @@ private:
     uint8_t scaledFactor = 1;
     uint32_t timeIndex = 0;
     double timeVal = 0.0;
+    DirectionalCoupler dCoupler;
 };
 #endif // MAIN_WINDOW_H
