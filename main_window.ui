@@ -1399,13 +1399,13 @@ color: rgb(85, 255, 255);</string>
      <string>RF Pout</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="run_button">
+   <widget class="QPushButton" name="send_button">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>250</y>
-      <width>71</width>
-      <height>29</height>
+      <x>290</x>
+      <y>0</y>
+      <width>91</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -1414,7 +1414,7 @@ font: 700 9pt &quot;Verdana&quot;;
 background-color: rgb(100, 100, 100);</string>
     </property>
     <property name="text">
-     <string>RUN</string>
+     <string> SEND CMD</string>
     </property>
    </widget>
    <widget class="QPushButton" name="stop_button">
@@ -1473,6 +1473,9 @@ color: rgb(85, 255, 255);</string>
      <string notr="true">background-color: rgb(100, 100, 100);
 color: rgb(255, 255, 255);</string>
     </property>
+    <property name="text">
+     <string>1</string>
+    </property>
    </widget>
    <widget class="QLineEdit" name="fend_data">
     <property name="geometry">
@@ -1486,6 +1489,9 @@ color: rgb(255, 255, 255);</string>
     <property name="styleSheet">
      <string notr="true">background-color: rgb(100, 100, 100);
 color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>3</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="fstep_data">
@@ -1501,6 +1507,9 @@ color: rgb(255, 255, 255);</string>
      <string notr="true">background-color: rgb(100, 100, 100);
 color: rgb(255, 255, 255);
 </string>
+    </property>
+    <property name="text">
+     <string>100</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="rf_pout_data">
@@ -1720,7 +1729,7 @@ color: rgb(255, 170, 0);
     <property name="geometry">
      <rect>
       <x>390</x>
-      <y>0</y>
+      <y>-30</y>
       <width>20</width>
       <height>451</height>
      </rect>
@@ -1792,12 +1801,12 @@ color: rgb(255, 170, 0);
     </property>
     <item>
      <property name="text">
-      <string>Ghz</string>
+      <string>Mhz</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Mhz</string>
+      <string>Ghz</string>
      </property>
     </item>
     <item>
@@ -1983,25 +1992,6 @@ color: rgb(255, 170, 0);
      </property>
     </item>
    </widget>
-   <widget class="QCheckBox" name="isFreqEnabled">
-    <property name="geometry">
-     <rect>
-      <x>290</x>
-      <y>0</y>
-      <width>101</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: rgb(255, 0, 255);</string>
-    </property>
-    <property name="text">
-     <string>Enable to Send</string>
-    </property>
-    <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pause_button">
     <property name="geometry">
      <rect>
@@ -2118,6 +2108,24 @@ background-color: rgb(100, 100, 100);</string>
      <string>SHOW MIN</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="run_button">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>250</y>
+      <width>71</width>
+      <height>29</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 255, 127);
+font: 700 9pt &quot;Verdana&quot;;
+background-color: rgb(100, 100, 100);</string>
+    </property>
+    <property name="text">
+     <string>RUN</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -2125,7 +2133,7 @@ background-color: rgb(100, 100, 100);</string>
      <x>0</x>
      <y>0</y>
      <width>1186</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

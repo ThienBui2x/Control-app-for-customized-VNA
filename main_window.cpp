@@ -6,6 +6,7 @@
 #include <QtMath>
 #include <QDateTime>
 #include <QDir>
+#include <QKeyEvent>
 
 main_window::main_window(QWidget *parent)
     : QMainWindow(parent)
@@ -22,6 +23,41 @@ main_window::~main_window()
 {
     delete hcom1;
     delete ui;
+}
+
+void main_window::keyPressEvent(QKeyEvent *event)
+{
+    QString cmd;
+    switch (event->key()) {
+    case Qt::Key_W:
+        cmd = "UP";
+        // sendCommand("UP");
+        break;
+    case Qt::Key_S:
+        cmd = "DOWN";
+        // sendCommand("DOWN");
+        break;
+    case Qt::Key_A:
+        cmd = "BACK";
+        // sendCommand("BACK");
+        break;
+    case Qt::Key_D:
+        cmd = "FORW";
+        // sendCommand("FORW");
+        break;
+    case Qt::Key_O:
+        cmd = "OK";
+        // sendCommand("OK");
+        break;
+    default:
+        QMainWindow::keyPressEvent(event); // pass on unhandled keys
+    }
+
+    if(!cmd.isEmpty())
+    {
+        statusBar()->showMessage("Sent " + cmd + " cmd", 1000);
+        hcom1->write((cmd+"\n").toUtf8());
+    }
 }
 
 void main_window::on_popen_button_clicked()
@@ -56,8 +92,10 @@ void main_window::on_pclose_button_clicked()
     if (hcom1->isOpen())
     {
         // Clear all displayed data
-        ui->plot->graph(0)->data()->clear();
-        ui->plot->replot();
+        if (ui->plot && ui->plot->graphCount() > 0 && ui->plot->graph(0)) {
+            ui->plot->graph(0)->data()->clear();
+            ui->plot->replot();
+        }
 
         // Double check in case previous logFie still opens
         // -> close it before closing the Port
@@ -86,6 +124,29 @@ void main_window::on_pclose_button_clicked()
     }   
 }
 
+void main_window::on_send_button_clicked()
+{
+    if (hcom1->isOpen())
+    {
+        freqSettings.startFreqHz = convertToHz(ui->fstart_data->text().toDouble(), ui->fstart_unit->currentText());
+        freqSettings.stopFreqHz  = convertToHz(ui->fend_data->text().toDouble(), ui->fend_unit->currentText());
+        freqSettings.stepFreqHz  = convertToHz(ui->fstep_data->text().toDouble(), ui->fstep_unit->currentText());
+        freqSettings.rfPout      = ui->rf_pout_data->text().toDouble(); // assuming dBm, no conversion
+
+        freqSettings.sampleCount = (freqSettings.stopFreqHz - freqSettings.startFreqHz) / freqSettings.stepFreqHz + 1;
+        freqSettings.currFreq = freqSettings.startFreqHz;
+
+        freqSettings.max.freqVal = 4400000000;
+        freqSettings.max.adcVal = 00000.0;
+        freqSettings.min.freqVal = 0000000000;
+        freqSettings.min.adcVal = 10000.0;
+
+        // Only send commands (header) -> MCU if checked
+        // otherwise the freqSettings are configured independently by a 3rd-party
+        uartWrite();
+    }
+}
+
 void main_window::on_pause_button_clicked()
 {
     isPause = !isPause; // Toggle pause state
@@ -93,49 +154,55 @@ void main_window::on_pause_button_clicked()
 
 void main_window::on_run_button_clicked()
 {
-    freqSettings.startFreqHz = convertToHz(ui->fstart_data->text().toDouble(), ui->fstart_unit->currentText());
-    freqSettings.stopFreqHz  = convertToHz(ui->fend_data->text().toDouble(), ui->fend_unit->currentText());
-    freqSettings.stepFreqHz  = convertToHz(ui->fstep_data->text().toDouble(), ui->fstep_unit->currentText());
-    freqSettings.rfPout      = ui->rf_pout_data->text().toDouble(); // assuming dBm, no conversion
-
-    freqSettings.sampleCount = (freqSettings.stopFreqHz - freqSettings.startFreqHz) / freqSettings.stepFreqHz + 1;
-    freqSettings.currFreq = freqSettings.startFreqHz;
-
-    freqSettings.max.freqVal = 4400000000;
-    freqSettings.max.adcVal = 00000.0;
-    freqSettings.min.freqVal = 0000000000;
-    freqSettings.min.adcVal = 10000.0;
-
-    freq_options(DISABLE);
-    // scalingSelection(ENABLE);
-    isReady = true;
-    isPause = false;
-    initializePlot();
     if (hcom1->isOpen())
     {
-        ui->plot->graph(0)->data()->clear();
-        ui->plot->replot();
+        freqSettings.startFreqHz = convertToHz(ui->fstart_data->text().toDouble(), ui->fstart_unit->currentText());
+        freqSettings.stopFreqHz  = convertToHz(ui->fend_data->text().toDouble(), ui->fend_unit->currentText());
+        freqSettings.stepFreqHz  = convertToHz(ui->fstep_data->text().toDouble(), ui->fstep_unit->currentText());
+        freqSettings.rfPout      = ui->rf_pout_data->text().toDouble(); // assuming dBm, no conversion
 
-        // Double check in case previous logFie still opens
-        // -> close it before creating new one
-        if (isLog)
+        freqSettings.sampleCount = (freqSettings.stopFreqHz - freqSettings.startFreqHz) / freqSettings.stepFreqHz + 1;
+        freqSettings.currFreq = freqSettings.startFreqHz;
+
+        freqSettings.max.freqVal = 4400000000;
+        freqSettings.max.adcVal = 00000.0;
+        freqSettings.min.freqVal = 0000000000;
+        freqSettings.min.adcVal = 10000.0;
+
+        freq_options(DISABLE);
+        // scalingSelection(ENABLE);
+
+        if( freqSettings.startFreqHz > 0 &&
+            freqSettings.stepFreqHz > 0 &&
+            freqSettings.stopFreqHz > 0 &&
+            freqSettings.sampleCount > 0)
         {
-            logFile.close();    //Close the old file
-            outLogFile.setDevice(nullptr);
-            // qDebug() << "Previous log file closed.!";
+            isReady = true;
+            isPause = false;
+
+            initializePlot();
+
+            ui->plot->graph(0)->data()->clear();
+            ui->plot->replot();
+
+            // Double check in case previous logFie still opens
+            // -> close it before creating new one
+            if (isLog)
+            {
+                logFile.close();    //Close the old file
+                outLogFile.setDevice(nullptr);
+                // qDebug() << "Previous log file closed.!";
+            }
+            isLog = true;
+
+            if (ui->mode_data->currentText() == "RF Scanning") initializeRFScanMode();
+            else if (ui->mode_data->currentText() == "S11 Plot") initializeS11PlotMode();
+            else qWarning() << "No supported mode is selected" << ui->mode_data;
+
+            statusBar()->showMessage("Waiting measurement data!", 1000);
         }
-        isLog = true;
-
-        if (ui->mode_data->currentText() == "RF Scanning") initializeRFScanMode();
-        else if (ui->mode_data->currentText() == "S11 Plot") initializeS11PlotMode();
-        else qWarning() << "No supported mode is selected" << ui->mode_data;
-
-        // Only send commands (header) -> MCU if checked
-        // otherwise the freqSettings are configured independently by a 3rd-party
-        if (ui->isFreqEnabled->isChecked()) uartWrite();
-
-        statusBar()->showMessage("Waiting measurement data!", 1000);
     }
+
 }
 
 void main_window::on_stop_button_clicked()
@@ -159,6 +226,7 @@ void main_window::on_stop_button_clicked()
 
     freq_options(ENABLE);
     // scalingSelection(DISABLE);
+    hcom1->write("Stop\n");
     statusBar()->showMessage("Stop measurement!", 1000);
 }
 \
@@ -217,8 +285,8 @@ void main_window::initializeRFScanMode()
     ui->plot->graph(0)->setName("RF Scanning");
     ui->plot->xAxis->setLabel("Frequency (Hz)");
     ui->plot->yAxis->setLabel("ADC Value");
-    ui->plot->xAxis->setRange(freqSettings.startFreqHz, freqSettings.stopFreqHz+freqSettings.startFreqHz/2);
-    ui->plot->yAxis->setRange(50.0, 80.0);     // in Unit: dB
+    ui->plot->xAxis->setRange(freqSettings.startFreqHz, freqSettings.stopFreqHz*1.05);
+    ui->plot->yAxis->setRange(20.0, 80.0);     // in Unit: dB
 
     // ui->plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
     // QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
@@ -386,7 +454,7 @@ void main_window::uartRead()
 
 void main_window::rfScan(QByteArray *packet)
 {
-    if (packet->size() == 4 and freqSettings.sampleCount > 0)
+    if (packet->size() == 4 and freqSettings.sampleCount >= 0)
     {
         bool ok;
         double adcVal = static_cast<double>(packet->toUInt(&ok, 16));
@@ -520,4 +588,7 @@ void main_window::on_min_button_clicked()
     qDebug() << "Min Adc at freq" << freqSettings.min.freqVal;
     statusBar()->showMessage("Min Adc at freq" + QString::number(freqSettings.min.freqVal), 3000);
 }
+
+
+
 

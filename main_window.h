@@ -51,6 +51,9 @@ public:
     main_window(QWidget *parent = nullptr);
     ~main_window();
 
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+
 private slots:
     void on_popen_button_clicked();
 
@@ -88,6 +91,8 @@ private slots:
     void on_max_button_clicked();
 
     void on_min_button_clicked();
+
+    void on_send_button_clicked();
 
 private:
     Ui::main_window *ui;
