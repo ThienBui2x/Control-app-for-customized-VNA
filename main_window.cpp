@@ -607,7 +607,6 @@ void main_window::on_sParam_data_editingFinished()
         QString filePath = ui->sParam_data->text();
         if(type == "DirectionalCoupler")
         {
-            qDebug() << "File path" << filePath;
             touchStoneParsing(filePath);
             statusBar()->showMessage("Directional Coupler Type is selected!", 1500);
         }
@@ -621,7 +620,8 @@ void main_window::touchStoneParsing(const QString& filePath)
 {
     // Check the validity of the file
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
         qWarning() << "Cannot open file:" << filePath;
         return;
     }
@@ -629,7 +629,8 @@ void main_window::touchStoneParsing(const QString& filePath)
     // Parsing the file (ignoring the header (starting with # or ! characters))
     QTextStream in(&file);
     QVector<QVector<double>> dataRows;
-    while (!in.atEnd()) {
+    while (!in.atEnd())
+    {
         // Ignore all redundancy whitespaces
         QString line = in.readLine().trimmed();
 
@@ -682,20 +683,23 @@ void main_window::touchStoneParsing(const QString& filePath)
     if (fileName.contains("S12", Qt::CaseInsensitive))
     {
         targetVector = &dCoupler.S12;
-        statusBar()->showMessage("Data for Port 1 & 2", 1500);
-        qDebug() << "S12";
+        ui->s12_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+        // statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        // qDebug() << "S12";
     }
     else if (fileName.contains("S13", Qt::CaseInsensitive))
     {
         targetVector = &dCoupler.S13;
-        statusBar()->showMessage("Data for Port 1 & 2", 1500);
-        qDebug() << "S13";
+        ui->s13_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+        // statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        // qDebug() << "S13";
     }
     else if (fileName.contains("S14", Qt::CaseInsensitive))
     {
         targetVector = &dCoupler.S14;
-        statusBar()->showMessage("Data for Port 1 & 2", 1500);
-        qDebug() << "S14";
+        ui->s14_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+        // statusBar()->showMessage("Data for Port 1 & 2", 1500);
+        // qDebug() << "S14";
     }
     else
     {
@@ -703,6 +707,8 @@ void main_window::touchStoneParsing(const QString& filePath)
         qDebug() << "UNKNOWN";
         return;
     }
+    // Clear the old S-params
+    if(targetVector) targetVector->clear();
 
     // Store S-Matrix to corresponding locations
     for (const QVector<double>& row : dataRows) {
@@ -727,12 +733,16 @@ void main_window::touchStoneParsing(const QString& filePath)
     {
         dCoupler.startFreqHz = targetVector->front().freq;
         dCoupler.stopFreqHz = targetVector->back().freq;
+
+        // Update the GUI freq data
+        ui->sParam_start_data->setText(QString::number(dCoupler.startFreqHz));
+        ui->sParam_stop_data->setText(QString::number(dCoupler.stopFreqHz));
     }
 
     /* DEBUGGING */
     // qDebug() << "StartFreq" << dCoupler.startFreqHz;
     // qDebug() << "StopFreq" << dCoupler.stopFreqHz;
-    // for (const SParameters& param : dCoupler.S12) {
+    // for (const SParameters& param : *targetVector) {
     //     qDebug() << "Freq:" << param.freq << "Hz";
 
     //     qDebug() << "S11:" << param.data[0][0].real() << "+" << param.data[0][0].imag() << "j";
@@ -744,4 +754,23 @@ void main_window::touchStoneParsing(const QString& filePath)
     // }
 }
 
+void main_window::on_sParam_type_currentTextChanged(const QString &arg1)
+{
+    // Update the GUI freq data to default
+    ui->sParam_start_data->setText(" ");
+    ui->sParam_stop_data->setText(" ");
+
+    // Update S-param status to default color
+    ui->s12_info->setStyleSheet("QLabel { color: rgb(85, 85, 127); }");
+    ui->s13_info->setStyleSheet("QLabel { color: rgb(85, 85, 127); }");
+    ui->s14_info->setStyleSheet("QLabel { color: rgb(85, 85, 127); }");
+
+    if(arg1.trimmed() == "DirectionalCoupler")
+    {
+        // Check whether its S-Matrices having data or not
+        if(!dCoupler.S12.empty()) ui->s12_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+        if(!dCoupler.S13.empty()) ui->s13_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+        if(!dCoupler.S14.empty()) ui->s14_info->setStyleSheet("QLabel { color: rgb(170, 255, 0); }");
+    }
+}
 

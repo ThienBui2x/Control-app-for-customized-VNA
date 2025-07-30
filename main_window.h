@@ -114,6 +114,8 @@ private slots:
 
     void on_sParam_data_editingFinished();
 
+    void on_sParam_type_currentTextChanged(const QString &arg1);
+
 private:
     Ui::main_window *ui;
 

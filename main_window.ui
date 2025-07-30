@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1299</width>
-    <height>595</height>
+    <height>637</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -617,7 +617,7 @@ color: rgb(85, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(0, 229, 0);
+     <string notr="true">color: rgb(255, 0, 255);
 font: 700 11pt &quot;Verdana&quot;;
 </string>
     </property>
@@ -1317,7 +1317,7 @@ font: 700 9pt &quot;Verdana&quot;;</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(0, 229, 0);
+     <string notr="true">color: rgb(255, 0, 255);
 font: 700 11pt &quot;Verdana&quot;;</string>
     </property>
     <property name="text">
@@ -1731,7 +1731,7 @@ color: rgb(255, 170, 0);
       <x>390</x>
       <y>-30</y>
       <width>20</width>
-      <height>581</height>
+      <height>491</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -2184,7 +2184,7 @@ color: rgb(170, 255, 127);</string>
       <x>770</x>
       <y>390</y>
       <width>20</width>
-      <height>31</height>
+      <height>201</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -2195,6 +2195,166 @@ color: rgb(170, 255, 127);</string>
     </property>
     <property name="orientation">
      <enum>Qt::Orientation::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="s12_info">
+    <property name="geometry">
+     <rect>
+      <x>1180</x>
+      <y>430</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Verdana</family>
+      <pointsize>9</pointsize>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+color: rgb(85, 85, 127);</string>
+    </property>
+    <property name="text">
+     <string>S12</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="s14_info">
+    <property name="geometry">
+     <rect>
+      <x>1260</x>
+      <y>430</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Verdana</family>
+      <pointsize>9</pointsize>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+color: rgb(85, 85, 127);</string>
+    </property>
+    <property name="text">
+     <string>S14</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="s13_info">
+    <property name="geometry">
+     <rect>
+      <x>1220</x>
+      <y>430</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Verdana</family>
+      <pointsize>9</pointsize>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+color: rgb(85, 85, 127);
+</string>
+    </property>
+    <property name="text">
+     <string>S13</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="sParam_start_info">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>430</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Verdana</family>
+      <pointsize>9</pointsize>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 700 9pt &quot;Verdana&quot;;
+color: rgb(85, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Start Freq</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="sParam_stop_info">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>430</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Verdana</family>
+      <pointsize>9</pointsize>
+      <italic>false</italic>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 700 9pt &quot;Verdana&quot;;
+color: rgb(85, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>Stop Freq</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="sParam_start_data">
+    <property name="geometry">
+     <rect>
+      <x>870</x>
+      <y>430</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(100, 100, 100);
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="sParam_stop_data">
+    <property name="geometry">
+     <rect>
+      <x>1060</x>
+      <y>430</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(100, 100, 100);
+color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>
