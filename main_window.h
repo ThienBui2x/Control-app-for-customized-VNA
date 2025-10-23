@@ -46,7 +46,6 @@ struct UartConfig
 
 struct SParameters
 {
-    uint64_t freq;
     std::complex<double> data[2][2];
 
 };
@@ -55,9 +54,10 @@ struct DirectionalCoupler
 {
     uint64_t startFreqHz = 0;
     uint64_t stopFreqHz = 0;
-    std::vector<SParameters> S12;
-    std::vector<SParameters> S13;
-    std::vector<SParameters> S14;
+    std::map<uint64_t, SParameters> S12;
+    std::map<uint64_t, SParameters> S13;
+    std::map<uint64_t, SParameters> S14;
+
 };
 
 class main_window : public QMainWindow
@@ -103,6 +103,7 @@ private slots:
     void s11Plot(QByteArray *packet);
     uint64_t convertToHz(double value, const QString &unit);
     void touchStoneParsing(const QString& filePath);
+    double reflectionCalculation(uint64_t freq, double Vmag_lin);
 
     void on_outDir_data_textChanged(const QString &arg1);
 
@@ -132,5 +133,6 @@ private:
     uint32_t timeIndex = 0;
     double timeVal = 0.0;
     DirectionalCoupler dCoupler;
+    std::complex<double> reflection_val;
 };
 #endif // MAIN_WINDOW_H
